@@ -17,4 +17,5 @@ const pairs = process.env.PAIRS.split(",");
 app.post("/start",(req,res)=>{ runBot(pairs,io); res.send("Bot started"); });
 app.post("/stop",(req,res)=>{ stopBot(); res.send("Bot stopped"); });
 
-server.listen(3000,()=>console.log("Dashboard http://localhost:3000"));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT,() => console.log(`Dashboard http://localhost:${PORT}`));
