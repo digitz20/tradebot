@@ -103,6 +103,7 @@ async function runBot(pairs, io){
           log("Starting multi-timeframe confirmation...");
 
           // Multi-timeframe confirmation logic
+          
           if (signal === "BUY") {
             if (trend15 === "DOWN" || trend4h === "DOWN") {
               log(`BUY signal for ${symbol} skipped due to conflicting longer-term trends (15m: ${trend15}, 4h: ${trend4h}).`);
