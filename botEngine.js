@@ -45,6 +45,16 @@ async function runBot(pairs, io){
     }
 
     log("Entering symbol loop.");
+    let balances;
+    try {
+      balances = await getBalance();
+      log("Fetched balances successfully.");
+    } catch (balanceErr) {
+      log(`ERROR fetching balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
+      await new Promise(r=>setTimeout(r,60000)); // Wait before retrying the whole cycle
+      continue; // Skip to the next iteration of the while(running) loop
+    }
+
     try {
       await Promise.all(pairs.map(async (symbol) => {
         log(`Processing symbol: ${symbol}`);
@@ -69,7 +79,7 @@ async function runBot(pairs, io){
           try {
             candles4h = await getCandles(symbol,"4H");
           } catch (candleErr) {
-            log(`ERROR fetching 4h candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON.stringify(candleErr.response.data) : 'N/A'}`);
+            log(`ERROR fetching 4h candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON(candleErr.response.data) : 'N/A'}`);
             return;
           }
 
@@ -114,13 +124,6 @@ async function runBot(pairs, io){
             return;
           }
           
-          let balances;
-          try {
-            balances = await getBalance();
-          } catch (balanceErr) {
-            log(`ERROR fetching balance: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
-            return; // Skip this iteration if balance fetch fails
-          }
           const usdt = balances.find(b=>b.marginCoin==="USDT"); // Corrected property name
           if(!usdt) {
             log("ERROR: USDT balance not found.");
