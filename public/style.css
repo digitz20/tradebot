@@ -1,0 +1,6 @@
+body{background:#111;color:white;font-family:Arial;text-align:center;}
+.light{background:white;color:black;}
+button{padding:10px;margin:5px;}
+table{width:80%;margin:auto;border-collapse: collapse;}
+table, td, th{border:1px solid white;padding:5px;}
+#newsStatus{margin:10px;font-weight:bold;}
