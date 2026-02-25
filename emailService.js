@@ -3,15 +3,16 @@ require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Use TLS, not SSL
-  requireTLS: true, // Force TLS
+  port: 465, // Change port to 465 for implicit SSL
+  secure: true, // Set secure to true for implicit SSL
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
   // Force IPv4 to avoid ENETUNREACH issues with IPv6
   family: 4,
+  // logger: true,
+  // debug: true
 });
 
 async function sendEmail(subject, text) {

@@ -94,7 +94,7 @@ async function runBot(pairs, io){
           log(`Long-term ATR (4H): ${longTermATR}`);
 
           log("Calling analyze function...");
-          const { signal, lastRSI, lastEMA, lastATR, lastPrice } = analyze(closes1, highs1, lows1);
+          const { signal, lastRSI, lastEMA, lastATR, lastPrice } = analyze(closes1, highs1, lows1, sentimentScore);
           log(`Analyze function returned: Signal=${signal}, RSI=${lastRSI}, EMA=${lastEMA}, ATR=${lastATR}, Price=${lastPrice}`);
           const trend15 = trendDirection(closes15);
            const trend4h = trendDirection(closes4h);
