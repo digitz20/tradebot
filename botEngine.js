@@ -6,7 +6,7 @@ const { getNewsSentiment } = require("./newsManager");
 
 const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.5");
 const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "2.0");
-const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "30");
+const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "15");
 
 const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-1.5");
 const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "1.5");
