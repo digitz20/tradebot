@@ -212,9 +212,46 @@ async function runBot(pairs, io){
             const pricePlace = contractConfigs[symbol]?.pricePlace;
             if (pricePlace === undefined) {
               log(`ERROR: Could not get pricePlace for ${symbol}. Skipping TP/SL order.`);
-              // We should not continue here, as the trade was already executed.
-              // Instead, we log the error and proceed without TP/SL for this trade.
+              // Log the error and proceed without TP/SL for this trade.
             } else {
+              const tickSize = 1 / Math.pow(10, pricePlace); // Calculate the smallest price increment
+
+              // Adjust TP/SL to ensure they are strictly greater/less than lastPrice after rounding
+              if (signal === "BUY") {
+                // Ensure TP is strictly > lastPrice
+                let roundedTP = parseFloat(takeProfitTriggerPrice.toFixed(pricePlace));
+                if (roundedTP <= lastPrice) { // If rounded TP is not strictly greater than lastPrice
+                  takeProfitTriggerPrice = lastPrice + tickSize; // Adjust to be one tick above lastPrice
+                } else {
+                  takeProfitTriggerPrice = roundedTP; // Use the rounded value
+                }
+
+                // Ensure SL is strictly < lastPrice
+                let roundedSL = parseFloat(stopLossTriggerPrice.toFixed(pricePlace));
+                if (roundedSL >= lastPrice) { // If rounded SL is not strictly less than lastPrice
+                  stopLossTriggerPrice = lastPrice - tickSize; // Adjust to be one tick below lastPrice
+                } else {
+                  stopLossTriggerPrice = roundedSL; // Use the rounded value
+                }
+
+              } else { // SELL
+                // Ensure TP is strictly < lastPrice
+                let roundedTP = parseFloat(takeProfitTriggerPrice.toFixed(pricePlace));
+                if (roundedTP >= lastPrice) { // If rounded TP is not strictly less than lastPrice
+                  takeProfitTriggerPrice = lastPrice - tickSize; // Adjust to be one tick below lastPrice
+                } else {
+                  takeProfitTriggerPrice = roundedTP; // Use the rounded value
+                }
+
+                // Ensure SL is strictly > lastPrice
+                let roundedSL = parseFloat(stopLossTriggerPrice.toFixed(pricePlace));
+                if (roundedSL <= lastPrice) { // If rounded SL is not strictly greater than lastPrice
+                  stopLossTriggerPrice = lastPrice + tickSize; // Adjust to be one tick above lastPrice
+                } else {
+                  stopLossTriggerPrice = roundedSL; // Use the rounded value
+                }
+              }
+
               try {
                 await placeTpslOrder(
                   symbol,
