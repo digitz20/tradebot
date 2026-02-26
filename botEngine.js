@@ -11,7 +11,7 @@ const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERV
 const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-1.5");
 const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "1.5");
 
-let running=false;
+let _runningState = false; // Internal state variable
 let tradeHistory=[];
 let pnl=0;
 let dailyLoss=0;
@@ -20,7 +20,7 @@ let lastNewsApiCallTime = Date.now();
 
 async function runBot(pairs, io){
   log("runBot function started.");
-  running=true;
+  setRunningState(true); // Set running state to true
 
   let contractConfigs = {};
   try {
@@ -34,7 +34,7 @@ async function runBot(pairs, io){
     // Depending on how critical this is, you might want to stop the bot or retry
   }
 
-  while(running){
+  while(getRunningState()){
     let sentimentScore = 0;
     const currentTime = Date.now();
     if (currentTime - lastNewsApiCallTime > NEWS_API_CALL_INTERVAL_MINUTES * 60 * 1000) {
@@ -155,7 +155,8 @@ async function runBot(pairs, io){
           log(`Type of dailyLossCheck: ${typeof dailyLossCheck}`);
           if(dailyLossCheck(dailyLoss) || maxDrawdownCheck(pnl)){
             log("Risk limit reached. Stopping bot.");
-            running=false; return;
+            setRunningState(false); // Set running state to false
+            return { stoppedByRisk: true }; // Indicate it stopped due to risk
           }
           if(lastATR > 2*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
 
@@ -288,19 +289,31 @@ async function runBot(pairs, io){
 
     await new Promise(r=>setTimeout(r,60000));
   }
+  setRunningState(false); // Ensure state is false if loop exits for other reasons
+  return { stoppedByRisk: false }; // If loop exits for other reasons (e.g., manual stop)
 }
 
 
 
 
-function stopBot(){ running=false; }
+function getRunningState() {
+  return _runningState;
+}
+
+function setRunningState(state) {
+  _runningState = state;
+}
+
+function stopBot(){
+  setRunningState(false); // Set running state to false
+}
 
 function ATRcalculate(closes){
   const diffs = closes.slice(1).map((p,i)=>Math.abs(p-closes[i]));
   return diffs.reduce((a,b)=>a+b,0)/diffs.length;
 }
 
-module.exports={runBot, stopBot};
+module.exports={runBot, stopBot, getRunningState, setRunningState}; // Export new functions
 
 // Start the bot when this script is executed directly
 if (require.main === module) {
