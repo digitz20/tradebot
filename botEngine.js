@@ -33,6 +33,7 @@ async function runBot(pairs, io){
     log(`ERROR fetching contract configurations: ${error.message}`);
     // Depending on how critical this is, you might want to stop the bot or retry
   }
+  let riskLimitHit = false; // Flag to indicate if risk limit was hit
 
   while(getRunningState()){
     let sentimentScore = 0;
@@ -156,7 +157,8 @@ async function runBot(pairs, io){
           if(dailyLossCheck(dailyLoss) || maxDrawdownCheck(pnl)){
             log("Risk limit reached. Stopping bot.");
             setRunningState(false); // Set running state to false
-            return { stoppedByRisk: true }; // Indicate it stopped due to risk
+            riskLimitHit = true; // Set the flag
+            return; // Exit the current symbol's processing, but not runBot itself yet
           }
           if(lastATR > 2*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
 
@@ -290,7 +292,7 @@ async function runBot(pairs, io){
     await new Promise(r=>setTimeout(r,60000));
   }
   setRunningState(false); // Ensure state is false if loop exits for other reasons
-  return { stoppedByRisk: false }; // If loop exits for other reasons (e.g., manual stop)
+  return { stoppedByRisk: riskLimitHit }; // Return the flag
 }
 
 
