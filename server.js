@@ -39,12 +39,12 @@ server.listen(PORT,() => {
 
         if (result && result.stoppedByRisk) {
             const restartIntervalMinutes = parseInt(process.env.BOT_RESTART_INTERVAL_MINUTES, 10) || 60; // Parse to integer
-          console.log(`Bot stopped due to risk limit. Waiting ${process.env.BOT_RESTART_INTERVAL_MINUTES} minutes before attempting restart.`);
-          await new Promise(resolve => setTimeout(resolve, process.env.BOT_RESTART_INTERVAL_MINUTES * 60 * 1000)); // Wait for specified interval
+          console.log(`Bot stopped due to risk limit. Waiting ${restartIntervalMinutes} minutes before attempting restart.`);
+          await new Promise(resolve => setTimeout(resolve, restartIntervalMinutes * 60 * 1000)); // Wait for specified interval
         } else {
-          console.log("Bot stopped for other reasons (e.g., manual stop). Will not auto-restart.");
-          // Wait for a longer period or until manually started
-          await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)); // Wait 5 minutes before checking again
+          const otherStopRestartIntervalMinutes = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES, 10) || 5; // Parse to integer, default to 5 minutes
+          console.log(`Bot stopped for other reasons (e.g., manual stop). Will attempt restart in ${otherStopRestartIntervalMinutes} minutes.`);
+          await new Promise(resolve => setTimeout(resolve, otherStopRestartIntervalMinutes * 60 * 1000)); // Wait for specified interval
         }
       } else {
         // If bot is already running, just wait a bit before checking again

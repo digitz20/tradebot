@@ -31,11 +31,11 @@ function analyze(closes, highs, lows, newsSentiment) {
   }
 
   // BUY condition: Price crosses above EMA AND RSI is not overbought AND News Sentiment is positive
-  if (prevPrice < prevEMA && lastPrice > lastEMA && lastRSI < 70 && newsSentiment > 0) {
+  if (prevPrice < prevEMA && lastPrice > lastEMA && lastRSI < 60 && newsSentiment > 0) {
     signal = "BUY";
   }
   // SELL condition: Price crosses below EMA AND RSI is not oversold AND News Sentiment is negative
-  else if (prevPrice > prevEMA && lastPrice < lastEMA && lastRSI > 30 && newsSentiment < 0) {
+  else if (prevPrice > prevEMA && lastPrice < lastEMA && lastRSI > 40 && newsSentiment < 0) {
     signal = "SELL";
   }
 

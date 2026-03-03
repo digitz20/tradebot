@@ -4,8 +4,8 @@ const { log } = require("./logger");
 const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager");
 const { getNewsSentiment } = require("./newsManager");
 
-const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.5");
-const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "2.0");
+const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.0");
+const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "3.0");
 const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "15");
 const BOT_RESTART_RISK_STOP_MINUTES = parseInt(process.env.BOT_RESTART_RISK_STOP_MINUTES || "5");
 const BOT_RESTART_OTHER_STOP_MINUTES = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES || "1");
@@ -140,17 +140,11 @@ async function runBot(pairs, io){
           // Apply sentiment multiplier to position size
           let sentimentMultiplier = 1.0;
           if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 1.5; // Increase size by 50% for positive sentiment
+            sentimentMultiplier = 2.0; // Increase size by 100% for positive sentiment
             log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
           } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 1.5; // Increase size by 50% for negative sentiment
+            sentimentMultiplier = 2.0; // Increase size by 100% for negative sentiment
             log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
-          } else if (signal === "BUY" && sentimentScore < -1) {
-            sentimentMultiplier = 0.8; // Reduce size by 20% for conflicting sentiment
-            log(`Conflicting news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Reducing size.`);
-          } else if (signal === "SELL" && sentimentScore > 1) {
-            sentimentMultiplier = 0.8; // Reduce size by 20% for conflicting sentiment
-            log(`Conflicting news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Reducing size.`);
           }
           calculatedSize *= sentimentMultiplier;
           log(`Adjusted position size with sentiment: ${calculatedSize.toFixed(8)}`);
@@ -294,10 +288,8 @@ async function runBot(pairs, io){
     await new Promise(r=>setTimeout(r,60000));
   }
   setRunningState(false); // Ensure state is false if loop exits for other reasons
-  return { stoppedByRisk: riskLimitHit }; // Return the flag
+  return { stoppedByRisk: riskLimitHit }; // Return the fla
 }
-
-
 
 
 function getRunningState() {
