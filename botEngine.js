@@ -7,6 +7,8 @@ const { getNewsSentiment } = require("./newsManager");
 const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.5");
 const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "2.0");
 const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "15");
+const BOT_RESTART_RISK_STOP_MINUTES = parseInt(process.env.BOT_RESTART_RISK_STOP_MINUTES || "5");
+const BOT_RESTART_OTHER_STOP_MINUTES = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES || "1");
 
 const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-1.5");
 const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "1.5");
@@ -138,16 +140,16 @@ async function runBot(pairs, io){
           // Apply sentiment multiplier to position size
           let sentimentMultiplier = 1.0;
           if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 1.2; // Increase size by 20% for positive sentiment
+            sentimentMultiplier = 1.5; // Increase size by 50% for positive sentiment
             log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
           } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 1.2; // Increase size by 20% for negative sentiment
+            sentimentMultiplier = 1.5; // Increase size by 50% for negative sentiment
             log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
           } else if (signal === "BUY" && sentimentScore < -1) {
-            sentimentMultiplier = 0.5; // Reduce size by 50% for conflicting sentiment
+            sentimentMultiplier = 0.8; // Reduce size by 20% for conflicting sentiment
             log(`Conflicting news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Reducing size.`);
           } else if (signal === "SELL" && sentimentScore > 1) {
-            sentimentMultiplier = 0.5; // Reduce size by 50% for conflicting sentiment
+            sentimentMultiplier = 0.8; // Reduce size by 20% for conflicting sentiment
             log(`Conflicting news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Reducing size.`);
           }
           calculatedSize *= sentimentMultiplier;
@@ -160,7 +162,7 @@ async function runBot(pairs, io){
             riskLimitHit = true; // Set the flag
             return; // Exit the current symbol's processing, but not runBot itself yet
           }
-          if(lastATR > 2*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
+          if(lastATR > 3*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
 
           log(`USDT available: ${usdt.available}`);
           log(`Calculated position size (USDT): ${calculatedSize.toFixed(8)}`);
@@ -315,13 +317,30 @@ function ATRcalculate(closes){
   return diffs.reduce((a,b)=>a+b,0)/diffs.length;
 }
 
-module.exports={runBot, stopBot, getRunningState, setRunningState}; // Export new functions
+
+
+async function restartBot(pairs, io) {
+  log("Restart bot function started.");
+  while (true) {
+    log("Attempting to start bot...");
+    const { stoppedByRisk } = await runBot(pairs, io);
+    if (stoppedByRisk) {
+      log(`Bot stopped due to risk limit. Restarting in ${BOT_RESTART_RISK_STOP_MINUTES} minutes...`);
+      await new Promise(r => setTimeout(r, BOT_RESTART_RISK_STOP_MINUTES * 60 * 1000));
+    } else {
+      log(`Bot stopped for unknown reason. Restarting in ${BOT_RESTART_OTHER_STOP_MINUTES} minute(s)...`);
+      await new Promise(r => setTimeout(r, BOT_RESTART_OTHER_STOP_MINUTES * 60 * 1000));
+    }
+  }
+}
+
+module.exports={runBot, stopBot, getRunningState, setRunningState, restartBot}; // Export new functions
 
 // Start the bot when this script is executed directly
 if (require.main === module) {
   require('dotenv').config(); // Ensure dotenv is loaded for process.env.PAIRS
   const pairs = process.env.PAIRS ? process.env.PAIRS.split(',') : ["BTCUSDT", "ETHUSDT"]; // Default if not set
-  runBot(pairs, { emit: () => {} }).catch(err => {
+  restartBot(pairs, { emit: () => {} }).catch(err => {
     console.error("Error starting bot:", err);
   });
 }
