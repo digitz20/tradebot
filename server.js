@@ -38,7 +38,7 @@ server.listen(PORT,() => {
         const result = await runBot(pairs, io); // Run the bot and await its completion
 
         if (result && result.stoppedByRisk) {
-            const restartIntervalMinutes = parseInt(process.env.BOT_RESTART_INTERVAL_MINUTES, 10) || 60; // Parse to integer
+            const restartIntervalMinutes = parseInt(process.env.BOT_RESTART_INTERVAL_MINUTES, 10) || 5; // Parse to integer
           console.log(`Bot stopped due to risk limit. Waiting ${restartIntervalMinutes} minutes before attempting restart.`);
           await new Promise(resolve => setTimeout(resolve, restartIntervalMinutes * 60 * 1000)); // Wait for specified interval
         } else {
