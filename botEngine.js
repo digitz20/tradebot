@@ -1,14 +1,14 @@
 const { getCandles, getBalance, placeMarket, placeTpslOrder, getContractConfig } = require("./bitgetClient");
 const { analyze, trendDirection } = require("./strategy");
 const { log } = require("./logger");
-const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager");
+const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager"); // Import risk management functions
 const { getNewsSentiment } = require("./newsManager");
 
 const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.0");
-const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "3.0");
-const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "15");
+const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "5.0");
+const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "3");
 const BOT_RESTART_RISK_STOP_MINUTES = parseInt(process.env.BOT_RESTART_RISK_STOP_MINUTES || "5");
-const BOT_RESTART_OTHER_STOP_MINUTES = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES || "1");
+const BOT_RESTART_OTHER_STOP_MINUTES = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES || "5");
 
 const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-1.5");
 const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "1.5");
@@ -37,6 +37,11 @@ async function runBot(pairs, io){
   }
   let riskLimitHit = false; // Flag to indicate if risk limit was hit
 
+  // Initialize balance tracking variables
+  let initialBalance = 0;
+  let peakBalance = 0;
+  let currentBalance = 0; // To be updated in the loop
+
   while(getRunningState()){
     let sentimentScore = 0;
     const currentTime = Date.now();
@@ -56,6 +61,47 @@ async function runBot(pairs, io){
       log(`ERROR fetching balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
       await new Promise(r=>setTimeout(r,60000)); // Wait before retrying the whole cycle
       continue; // Skip to the next iteration of the while(running) loop
+    }
+
+    const usdt = balances.find(b=>b.marginCoin==="USDT");
+    if (!usdt) {
+      log("ERROR: USDT balance not found for risk calculation. Skipping risk checks this cycle.");
+      await new Promise(r=>setTimeout(r,60000));
+      continue;
+    }
+    currentBalance = Number(usdt.available);
+
+    // Initialize initialBalance and peakBalance on first run
+    if (initialBalance === 0) {
+      initialBalance = currentBalance;
+      peakBalance = currentBalance;
+      log(`Initial balance set to: ${initialBalance.toFixed(2)} USDT`);
+    }
+
+    // Update peak balance
+    if (currentBalance > peakBalance) {
+      peakBalance = currentBalance;
+    }
+
+    // Calculate daily loss and total drawdown percentages
+    const dailyLossPercent = ((initialBalance - currentBalance) / initialBalance) * 100;
+    const totalLossPercent = ((peakBalance - currentBalance) / peakBalance) * 100;
+
+    log(`Current Balance: ${currentBalance.toFixed(2)} USDT, Initial Balance: ${initialBalance.toFixed(2)} USDT, Peak Balance: ${peakBalance.toFixed(2)} USDT`);
+    log(`Daily Loss Percent: ${dailyLossPercent.toFixed(2)}%, Total Drawdown Percent: ${totalLossPercent.toFixed(2)}%`);
+
+    // Perform risk checks
+    if (dailyLossCheck(dailyLossPercent)) {
+      log(`Risk limit reached: Daily loss limit exceeded (${dailyLossPercent.toFixed(2)}% vs ${process.env.DAILY_LOSS_LIMIT}%). Stopping bot.`);
+      riskLimitHit = true;
+      setRunningState(false);
+      break; // Exit the while loop
+    }
+    if (maxDrawdownCheck(totalLossPercent)) {
+      log(`Risk limit reached: Max drawdown limit exceeded (${totalLossPercent.toFixed(2)}% vs ${process.env.MAX_DRAWDOWN}%). Stopping bot.`);
+      riskLimitHit = true;
+      setRunningState(false);
+      break; // Exit the while loop
     }
 
     try {
