@@ -266,7 +266,7 @@ async function runBot(pairs, io){
                 // Ensure TP is strictly > lastPrice
                 let roundedTP = parseFloat(takeProfitTriggerPrice.toFixed(pricePlace));
                 if (roundedTP <= lastPrice) { // If rounded TP is not strictly greater than lastPrice
-                  takeProfitTriggerPrice = lastPrice + tickSize; // Adjust to be one tick above lastPrice
+                  takeProfitTriggerPrice = lastPrice + (2 * tickSize); // Adjust to be two ticks above lastPrice
                 } else {
                   takeProfitTriggerPrice = roundedTP; // Use the rounded value
                 }
@@ -283,7 +283,7 @@ async function runBot(pairs, io){
                 // Ensure TP is strictly < lastPrice
                 let roundedTP = parseFloat(takeProfitTriggerPrice.toFixed(pricePlace));
                 if (roundedTP >= lastPrice) { // If rounded TP is not strictly less than lastPrice
-                  takeProfitTriggerPrice = lastPrice - tickSize; // Adjust to be one tick below lastPrice
+                  takeProfitTriggerPrice = lastPrice - (2 * tickSize); // Adjust to be two ticks below lastPrice
                 } else {
                   takeProfitTriggerPrice = roundedTP; // Use the rounded value
                 }
