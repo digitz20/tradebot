@@ -186,13 +186,12 @@ async function runBot(pairs, io){
           // Apply sentiment multiplier to position size
           let sentimentMultiplier = 1.0;
           if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 3.0; // Increased from 2.0 to 3.0 (200% increase for positive sentiment)
+            sentimentMultiplier = 4.0; // Increased from 3.0 to 4.0 (300% increase for positive sentiment)
             log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
           } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 3.0; // Increased from 2.0 to 3.0 (200% increase for negative sentiment)
+            sentimentMultiplier = 4.0; // Increased from 3.0 to 4.0 (300% increase for negative sentiment)
             log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
           }
-          
           calculatedSize *= sentimentMultiplier;
           log(`Adjusted position size with sentiment: ${calculatedSize.toFixed(8)}`);
 
