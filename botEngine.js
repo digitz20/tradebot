@@ -1,17 +1,18 @@
-const { getCandles, getBalance, placeMarket, placeTpslOrder, getContractConfig } = require("./bitgetClient");
+const bitgetClient = require("./bitgetClient");
+const derivClient = require("./derivClient");
 const { analyze, trendDirection } = require("./strategy");
 const { log } = require("./logger");
 const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager"); // Import risk management functions
 const { getNewsSentiment } = require("./newsManager");
 
-const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "1.0");
-const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "5.0");
+const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "0.8");
+const TP_ATR_MULTIPLIER = parseFloat(process.env.TP_ATR_MULTIPLIER || "7.0");
 const NEWS_API_CALL_INTERVAL_MINUTES = parseInt(process.env.NEWS_API_CALL_INTERVAL_MINUTES || "3");
 const BOT_RESTART_RISK_STOP_MINUTES = parseInt(process.env.BOT_RESTART_RISK_STOP_MINUTES || "5");
 const BOT_RESTART_OTHER_STOP_MINUTES = parseInt(process.env.BOT_RESTART_OTHER_STOP_MINUTES || "5");
 
-const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-1.5");
-const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "1.5");
+const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_THRESHOLD || "-2.0");
+const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "2.0");
 
 let _runningState = false; // Internal state variable
 let tradeHistory=[];
@@ -21,26 +22,57 @@ let streak=0;
 let lastNewsApiCallTime = Date.now();
 
 async function runBot(pairs, io){
+  console.log("DEBUG: Entering runBot function.");
   log("runBot function started.");
   setRunningState(true); // Set running state to true
 
-  let contractConfigs = {};
+  // Connect to Deriv API
   try {
-    const configs = await getContractConfig();
-    configs.forEach(config => {
-      contractConfigs[config.symbol] = config;
-    });
-    log("Fetched contract configurations.");
+    await derivClient.connect(process.env.DERIV_API_KEY);
+    log("Connected to Deriv API successfully.");
   } catch (error) {
-    log(`ERROR fetching contract configurations: ${error.message}`);
-    // Depending on how critical this is, you might want to stop the bot or retry
+    log(`ERROR connecting to Deriv API: ${error.message}`);
+    setRunningState(false);
+    return;
   }
+
+  let contractConfigs = {};
+  let bitgetContractConfigs = {};
+  let derivContractConfigs = {};
+
+          try {
+            bitgetContractConfigs = await bitgetClient.getContractConfig();
+    log("Fetched Bitget contract configurations.");
+  } catch (error) {
+    log(`ERROR fetching Bitget contract configurations: ${error.message}`);
+  }
+
+  try {
+    derivContractConfigs = await derivClient.getContractConfig();
+    log("Fetched Deriv contract configurations.");
+    log(`Deriv Contract Configurations: ${JSON.stringify(derivContractConfigs, null, 2)}`);
+  } catch (error) {
+    log(`ERROR fetching Deriv contract configurations: ${error.message}`);
+  }
+  
+  // Merge contract configurations
+  contractConfigs = { ...bitgetContractConfigs, ...derivContractConfigs };
+
   let riskLimitHit = false; // Flag to indicate if risk limit was hit
 
   // Initialize balance tracking variables
   let initialBalance = 0;
   let peakBalance = 0;
   let currentBalance = 0; // To be updated in the loop
+
+  // Helper to get the correct client based on symbol
+  const getClient = (symbol) => {
+    if (symbol.includes("USDT")) {
+      return bitgetClient;
+    } else {
+      return derivClient;
+    }
+  };
 
   while(getRunningState()){
     let sentimentScore = 0;
@@ -53,15 +85,24 @@ async function runBot(pairs, io){
     }
 
     log("Entering symbol loop.");
-    let balances;
+    let bitgetBalances = [];
+    let derivBalances = [];
+
     try {
-      balances = await getBalance();
-      log("Fetched balances successfully.");
+      bitgetBalances = await bitgetClient.getBalance();
+      log("Fetched Bitget balances successfully.");
     } catch (balanceErr) {
-      log(`ERROR fetching balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
-      await new Promise(r=>setTimeout(r,60000)); // Wait before retrying the whole cycle
-      continue; // Skip to the next iteration of the while(running) loop
+      log(`ERROR fetching Bitget balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
     }
+
+    try {
+      derivBalances = await derivClient.getBalance();
+      log("Fetched Deriv balances successfully.");
+    } catch (balanceErr) {
+      log(`ERROR fetching Deriv balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
+    }
+    
+    const balances = [...bitgetBalances, ...derivBalances];
 
     const usdt = balances.find(b=>b.marginCoin==="USDT");
     if (!usdt) {
@@ -107,11 +148,12 @@ async function runBot(pairs, io){
     try {
       await Promise.all(pairs.map(async (symbol) => {
         log(`Processing symbol: ${symbol}`);
+        const client = getClient(symbol); // Get the appropriate client for the symbol
         try{
           let candles1, candles15, candles4h;
           log(`Fetching 1m candles for ${symbol}`);
           try {
-            candles1 = await getCandles(symbol,"1m");
+            candles1 = await client.getCandles(symbol,"1m");
             log(`Fetched 1m candles for ${symbol}. Sample: ${JSON.stringify(candles1.slice(0, 2))}`);
           } catch (candleErr) {
             log(`ERROR fetching 1min candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON.stringify(candleErr.response.data) : 'N/A'}`);
@@ -119,16 +161,16 @@ async function runBot(pairs, io){
           }
           log(`Fetching 15m candles for ${symbol}`);
           try {
-            candles15 = await getCandles(symbol,"15m");
+            candles15 = await client.getCandles(symbol,"15m");
           } catch (candleErr) {
             log(`ERROR fetching 15min candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON.stringify(candleErr.response.data) : 'N/A'}`);
             return;
           }
           log(`Fetching 4H candles for ${symbol}`);
           try {
-            candles4h = await getCandles(symbol,"4H");
+            candles4h = await client.getCandles(symbol,"4H");
           } catch (candleErr) {
-            log(`ERROR fetching 4h candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON(candleErr.response.data) : 'N/A'}`);
+            log(`ERROR fetching 4h candles for ${symbol}: ${candleErr.message}. Response data: ${candleErr.response ? JSON.stringify(candleErr.response.data) : 'N/A'}`);
             return;
           }
 
@@ -162,7 +204,7 @@ async function runBot(pairs, io){
             if (trend15 === "UP" || trend4h === "UP") {
               log(`SELL signal for ${symbol} skipped due to conflicting longer-term trends (15m: ${trend15}, 4h: ${trend4h}).`);
               return;
-            }
+    i        }
           }
           
           // Advanced Sentiment Filtering
@@ -186,10 +228,10 @@ async function runBot(pairs, io){
           // Apply sentiment multiplier to position size
           let sentimentMultiplier = 1.0;
           if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 8.0; // Increased from 5.0 to 8.0 (700% increase for positive sentiment)
+            sentimentMultiplier = 7.0; // Increased from 5.0 to 7.0 (600% increase for positive sentiment)
             log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
           } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 8.0; // Increased from 5.0 to 8.0 (700% increase for negative sentiment)
+            sentimentMultiplier = 7.0; // Increased from 5.0 to 7.0 (600% increase for negative sentiment)
             log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
           }
           calculatedSize *= sentimentMultiplier;
@@ -202,7 +244,7 @@ async function runBot(pairs, io){
             riskLimitHit = true; // Set the flag
             return; // Exit the current symbol's processing, but not runBot itself yet
           }
-          if(lastATR > 3*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
+          if(lastATR > 5*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
 
           log(`USDT available: ${usdt.available}`);
           log(`Calculated position size (USDT): ${calculatedSize.toFixed(8)}`);
@@ -217,7 +259,7 @@ async function runBot(pairs, io){
 
           if (signal === "BUY" || signal === "SELL") {
             // Execute trade
-            await placeMarket(symbol, signal==="BUY"?"buy":"sell", quantity); // Use calculated quantity
+            await client.placeMarket(symbol, signal==="BUY"?"buy":"sell", quantity); // Use calculated quantity
             tradeHistory.push({symbol,side:signal,price:lastPrice});
             streak = signal==="BUY"? (streak>=0?streak+1:1) : (streak<=0?streak-1:-1);
             pnl += lastPrice;
@@ -233,12 +275,12 @@ async function runBot(pairs, io){
             if (longTermATR > 0) { // Avoid division by zero
               const volatilityRatio = lastATR / longTermATR;
               if (volatilityRatio > 1.5) { // Short-term volatility significantly higher
-                dynamicSLMultiplier *= 0.8; // Reduce multiplier by 20%
-                dynamicTPMultiplier *= 0.8;
-                log(`High short-term volatility detected. Reducing SL/TP multipliers to ${dynamicSLMultiplier.toFixed(2)} and ${dynamicTPMultiplier.toFixed(2)}.`);
-              } else if (volatilityRatio < 0.7) { // Short-term volatility significantly lower
-                dynamicSLMultiplier *= 1.2; // Increase multiplier by 20%
-                dynamicTPMultiplier *= 1.2;
+                dynamicSLMultiplier *= 1.0; // No reduction during high volatility
+                dynamicTPMultiplier *= 1.0;
+                log(`High short-term volatility detected. Maintaining SL/TP multipliers at ${dynamicSLMultiplier.toFixed(2)} and ${dynamicTPMultiplier.toFixed(2)}.`);
+              } else { // Low short-term volatility
+                dynamicSLMultiplier *= 1.5; // Increase multiplier by 50%
+                dynamicTPMultiplier *= 1.5;
                 log(`Low short-term volatility detected. Increasing SL/TP multipliers to ${dynamicSLMultiplier.toFixed(2)} and ${dynamicTPMultiplier.toFixed(2)}.`);
               }
             }
@@ -298,12 +340,12 @@ async function runBot(pairs, io){
               }
 
               try {
-                await placeTpslOrder(
+                await client.placeTpslOrder(
                   symbol,
                   holdSide,
                   stopLossTriggerPrice,
                   takeProfitTriggerPrice,
-                  pricePlace // Pass pricePlace to bitgetClient
+                  pricePlace // Pass pricePlace to client
                 );
                 log(`Placed TP/SL orders for ${symbol}: SL=${stopLossTriggerPrice.toFixed(pricePlace)}, TP=${takeProfitTriggerPrice.toFixed(pricePlace)}`);
               } catch (tpslErr) {

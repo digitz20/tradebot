@@ -15,13 +15,28 @@ function sign(timestamp, method, path, body = "") {
 
 async function publicReq(method, path) {
     await sleep(200); // Add a delay before each public request
-    return axios({
-        method,
-        url: BASE + path,
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
+    try {
+        const response = await axios({
+            method,
+            url: BASE + path,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        return response;
+    } catch (error) {
+        console.error(`ERROR in publicReq for ${path}: ${error.message}`);
+        if (error.response) {
+            console.error(`Response data: ${JSON.stringify(error.response.data)}`);
+            console.error(`Response status: ${error.response.status}`);
+            console.error(`Response headers: ${JSON.stringify(error.response.headers)}`);
+        } else if (error.request) {
+            console.error(`No response received: ${error.request}`);
+        } else {
+            console.error(`Error setting up request: ${error.message}`);
+        }
+        throw error; // Re-throw the error so it can be caught by botEngine.js
+    }
 }
 
 async function privateReq(method, path, body = "") {
