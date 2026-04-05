@@ -27,18 +27,15 @@ function analyze(closes, highs, lows, newsSentiment) {
   // Ensure we have valid indicator values before making decisions
   // Also check if newsSentiment is a valid number
   if (lastRSI === undefined || lastEMA === undefined || prevPrice === undefined || prevEMA === undefined || typeof newsSentiment !== 'number') {
-    console.log(`DEBUG: Analyze function - Missing data. lastRSI: ${lastRSI}, lastEMA: ${lastEMA}, prevPrice: ${prevPrice}, prevEMA: ${prevEMA}, newsSentiment: ${newsSentiment}`);
     return { signal: "HOLD", lastRSI, lastEMA, lastATR, lastPrice };
   }
 
-  console.log(`DEBUG: Analyze function - prevPrice: ${prevPrice}, prevEMA: ${prevEMA}, lastPrice: ${lastPrice}, lastEMA: ${lastEMA}, lastRSI: ${lastRSI}, newsSentiment: ${newsSentiment}`);
-
   // BUY condition: Price crosses above EMA AND RSI is not overbought AND News Sentiment is positive
-  if (prevPrice < prevEMA && lastPrice > lastEMA && lastRSI < 50 && newsSentiment > -1.0) {
+  if (prevPrice < prevEMA && lastPrice > lastEMA && lastRSI < 40 && newsSentiment > -0.5) {
     signal = "BUY";
   }
   // SELL condition: Price crosses below EMA AND RSI is not oversold AND News Sentiment is negative
-  else if (prevPrice > prevEMA && lastPrice < lastEMA && lastRSI > 50 && newsSentiment < 1.0) {
+  else if (prevPrice > prevEMA && lastPrice < lastEMA && lastRSI > 60 && newsSentiment < 0.5) {
     signal = "SELL";
   }
 

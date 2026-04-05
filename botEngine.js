@@ -1,5 +1,5 @@
 const bitgetClient = require("./bitgetClient");
-const derivClient = require("./derivClient");
+
 const { analyze, trendDirection } = require("./strategy");
 const { log } = require("./logger");
 const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager"); // Import risk management functions
@@ -22,41 +22,26 @@ let streak=0;
 let lastNewsApiCallTime = Date.now();
 
 async function runBot(pairs, io){
-  console.log("DEBUG: Entering runBot function.");
   log("runBot function started.");
   setRunningState(true); // Set running state to true
 
-  // Connect to Deriv API
-  try {
-    await derivClient.connect(process.env.DERIV_API_KEY);
-    log("Connected to Deriv API successfully.");
-  } catch (error) {
-    log(`ERROR connecting to Deriv API: ${error.message}`);
-    setRunningState(false);
-    return;
-  }
+
 
   let contractConfigs = {};
   let bitgetContractConfigs = {};
-  let derivContractConfigs = {};
 
-          try {
-            bitgetContractConfigs = await bitgetClient.getContractConfig();
+
+  try {
+    bitgetContractConfigs = await bitgetClient.getContractConfig();
     log("Fetched Bitget contract configurations.");
   } catch (error) {
     log(`ERROR fetching Bitget contract configurations: ${error.message}`);
   }
 
-  try {
-    derivContractConfigs = await derivClient.getContractConfig();
-    log("Fetched Deriv contract configurations.");
-    log(`Deriv Contract Configurations: ${JSON.stringify(derivContractConfigs, null, 2)}`);
-  } catch (error) {
-    log(`ERROR fetching Deriv contract configurations: ${error.message}`);
-  }
+
   
   // Merge contract configurations
-  contractConfigs = { ...bitgetContractConfigs, ...derivContractConfigs };
+  contractConfigs = { ...bitgetContractConfigs };
 
   let riskLimitHit = false; // Flag to indicate if risk limit was hit
 
@@ -67,11 +52,7 @@ async function runBot(pairs, io){
 
   // Helper to get the correct client based on symbol
   const getClient = (symbol) => {
-    if (symbol.includes("USDT")) {
-      return bitgetClient;
-    } else {
-      return derivClient;
-    }
+    return bitgetClient;
   };
 
   while(getRunningState()){
@@ -86,7 +67,7 @@ async function runBot(pairs, io){
 
     log("Entering symbol loop.");
     let bitgetBalances = [];
-    let derivBalances = [];
+
 
     try {
       bitgetBalances = await bitgetClient.getBalance();
@@ -95,14 +76,9 @@ async function runBot(pairs, io){
       log(`ERROR fetching Bitget balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
     }
 
-    try {
-      derivBalances = await derivClient.getBalance();
-      log("Fetched Deriv balances successfully.");
-    } catch (balanceErr) {
-      log(`ERROR fetching Deriv balances: ${balanceErr.message}. Response data: ${balanceErr.response ? JSON.stringify(balanceErr.response.data) : 'N/A'}`);
-    }
+
     
-    const balances = [...bitgetBalances, ...derivBalances];
+    const balances = [...bitgetBalances];
 
     const usdt = balances.find(b=>b.marginCoin==="USDT");
     if (!usdt) {
@@ -228,10 +204,10 @@ async function runBot(pairs, io){
           // Apply sentiment multiplier to position size
           let sentimentMultiplier = 1.0;
           if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 7.0; // Increased from 5.0 to 7.0 (600% increase for positive sentiment)
+            sentimentMultiplier = 20.0; // Increased from 7.0 to 20.0 (1900% increase for positive sentiment)
             log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
           } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 7.0; // Increased from 5.0 to 7.0 (600% increase for negative sentiment)
+            sentimentMultiplier = 20.0; // Increased from 7.0 to 20.0 (1900% increase for negative sentiment)
             log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
           }
           calculatedSize *= sentimentMultiplier;
