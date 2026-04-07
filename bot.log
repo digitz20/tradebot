@@ -2836,3 +2836,22 @@
 [2026-04-06T22:40:35.301Z] Trend Direction: 15m=DOWN, 4h=DOWN
 [2026-04-06T22:40:35.304Z] Starting multi-timeframe confirmation...
 [2026-04-06T22:40:35.311Z] Adjusted position size with sentiment: 34.23973174
+[2026-04-06T22:40:35.315Z] Type of dailyLossCheck: function
+[2026-04-06T22:40:35.319Z] USDT available: 34.23973174
+[2026-04-06T22:40:35.329Z] Calculated position size (USDT): 34.23973174
+[2026-04-06T22:40:35.333Z] Last price: 80.953
+[2026-04-06T22:40:35.335Z] Calculated quantity: 0.42295816
+[2026-04-06T22:40:35.419Z] No trade executed for SOLUSDT due to signal: HOLD
+[2026-04-06T22:40:35.446Z] Mapping candle data...
+[2026-04-06T22:40:35.459Z] Long-term ATR (4H): 3.136666666666662
+[2026-04-06T22:40:35.477Z] Calling analyze function...
+[2026-04-06T22:40:35.481Z] Analyze function returned: Signal=HOLD, RSI=40.34, EMA=604.1880167476245, ATR=0.2247160438576746, Price=603.95
+[2026-04-06T22:40:35.484Z] Trend Direction: 15m=UP, 4h=DOWN
+[2026-04-06T22:40:35.487Z] Starting multi-timeframe confirmation...
+[2026-04-06T22:40:35.493Z] Adjusted position size with sentiment: 34.23973174
+[2026-04-06T22:40:35.496Z] Type of dailyLossCheck: function
+[2026-04-06T22:40:35.498Z] USDT available: 34.23973174
+[2026-04-06T22:40:35.514Z] Calculated position size (USDT): 34.23973174
+[2026-04-06T22:40:35.518Z] Last price: 603.95
+[2026-04-06T22:40:35.539Z] Calculated quantity: 0.05669299
+[2026-04-06T22:40:35.545Z] No trade executed for BNBUSDT due to signal: HOLD
