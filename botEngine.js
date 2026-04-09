@@ -1,8 +1,8 @@
 const bitgetClient = require("./bitgetClient");
 
-const { analyze, trendDirection } = require("./strategy");
+const { analyze, trendDirection, getCurrentMode, TRADING_MODES } = require("./strategy");
 const { log } = require("./logger");
-const { getPositionSize, dailyLossCheck, maxDrawdownCheck } = require("./riskManager"); // Import risk management functions
+const { RiskManager, dailyLossCheck, maxDrawdownCheck } = require("./riskManager"); // Updated import
 const { getNewsSentiment } = require("./newsManager");
 
 const SL_ATR_MULTIPLIER = parseFloat(process.env.SL_ATR_MULTIPLIER || "0.8");
@@ -15,11 +15,14 @@ const NEGATIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.NEGATIVE_SENTIMENT_T
 const POSITIVE_SENTIMENT_THRESHOLD = parseFloat(process.env.POSITIVE_SENTIMENT_THRESHOLD || "2.0");
 
 let _runningState = false; // Internal state variable
-let tradeHistory=[];
-let pnl=0;
-let dailyLoss=0;
-let streak=0;
+let tradeHistory = [];
+let pnl = 0;
+let dailyLoss = 0;
+let streak = 0;
 let lastNewsApiCallTime = Date.now();
+
+// Initialize risk manager
+const riskManager = new RiskManager();
 
 async function runBot(pairs, io){
   log("runBot function started.");
@@ -161,11 +164,33 @@ async function runBot(pairs, io){
           log(`Long-term ATR (4H): ${longTermATR}`);
 
           log("Calling analyze function...");
-          const { signal, lastRSI, lastEMA, lastATR, lastPrice } = analyze(closes1, highs1, lows1, sentimentScore);
-          log(`Analyze function returned: Signal=${signal}, RSI=${lastRSI}, EMA=${lastEMA}, ATR=${lastATR}, Price=${lastPrice}`);
-          const trend15 = trendDirection(closes15);
-           const trend4h = trendDirection(closes4h);
-           log(`Trend Direction: 15m=${trend15}, 4h=${trend4h}`);
+          let signal, lastRSI, lastEMA, lastATR, lastPrice, aiScore, confidence, mode, factors;
+          let trend15 = "UNKNOWN", trend4h = "UNKNOWN";
+
+          try {
+            const result = analyze(
+              closes1, highs1, lows1, sentimentScore,
+              candles1.map(c => Number(c[5]) || 1) // volume data
+            );
+            signal = result.signal;
+            lastRSI = result.lastRSI;
+            lastEMA = result.lastEMA;
+            lastATR = result.lastATR;
+            lastPrice = result.lastPrice;
+            aiScore = result.aiScore;
+            confidence = result.confidence;
+            mode = result.mode;
+            factors = result.factors;
+
+            trend15 = trendDirection(closes15);
+            trend4h = trendDirection(closes4h);
+
+            log(`Analyze function returned: Signal=${signal}, RSI=${lastRSI}, EMA=${lastEMA}, ATR=${lastATR}, Price=${lastPrice}, AI Score=${aiScore?.toFixed(3)}, Confidence=${confidence?.toFixed(3)}, Mode=${mode}`);
+            log(`Trend Direction: 15m=${trend15}, 4h=${trend4h}`);
+          } catch (analyzeErr) {
+            log(`ERROR during analysis for ${symbol}: ${analyzeErr.message}`);
+            return;
+          }
 
           log("Starting multi-timeframe confirmation...");
 
@@ -199,27 +224,20 @@ async function runBot(pairs, io){
           }
 
           const minTradeNum = parseFloat(contractConfigs[symbol]?.minTradeNum);
-          let calculatedSize = getPositionSize(Number(usdt.available), lastPrice, minTradeNum, streak);
+          let calculatedSize = riskManager.getPositionSize(Number(usdt.available), lastPrice, minTradeNum, null, confidence || 0.5);
 
-          // Apply sentiment multiplier to position size
+          // Apply sentiment multiplier to position size (enhanced with AI score)
           let sentimentMultiplier = 1.0;
-          if (signal === "BUY" && sentimentScore > 1) {
-            sentimentMultiplier = 20.0; // Increased from 7.0 to 20.0 (1900% increase for positive sentiment)
-            log(`Positive news sentiment (${sentimentScore.toFixed(2)}) for BUY signal. Increasing size.`);
-          } else if (signal === "SELL" && sentimentScore < -1) {
-            sentimentMultiplier = 20.0; // Increased from 7.0 to 20.0 (1900% increase for negative sentiment)
-            log(`Negative news sentiment (${sentimentScore.toFixed(2)}) for SELL signal. Increasing size.`);
+          if (signal === "BUY" && (sentimentScore > 1 || aiScore > 0.3)) {
+            sentimentMultiplier = Math.min(3.0, 1.0 + (sentimentScore / 2) + (aiScore / 2)); // Capped at 3x
+            log(`Positive signals for BUY: sentiment=${sentimentScore.toFixed(2)}, AI=${aiScore.toFixed(2)}, multiplier=${sentimentMultiplier.toFixed(2)}x`);
+          } else if (signal === "SELL" && (sentimentScore < -1 || aiScore < -0.3)) {
+            sentimentMultiplier = Math.min(3.0, 1.0 + Math.abs(sentimentScore / 2) + Math.abs(aiScore / 2)); // Capped at 3x
+            log(`Negative signals for SELL: sentiment=${sentimentScore.toFixed(2)}, AI=${aiScore.toFixed(2)}, multiplier=${sentimentMultiplier.toFixed(2)}x`);
           }
           calculatedSize *= sentimentMultiplier;
-          log(`Adjusted position size with sentiment: ${calculatedSize.toFixed(8)}`);
+          log(`Adjusted position size with signals: ${calculatedSize.toFixed(8)}`);
 
-          log(`Type of dailyLossCheck: ${typeof dailyLossCheck}`);
-          if(dailyLossCheck(dailyLoss) || maxDrawdownCheck(pnl)){
-            log("Risk limit reached. Stopping bot.");
-            setRunningState(false); // Set running state to false
-            riskLimitHit = true; // Set the flag
-            return; // Exit the current symbol's processing, but not runBot itself yet
-          }
           if(lastATR > 5*ATRcalculate(closes1)){ log("ATR spike detected. Skipping."); return; }
 
           log(`USDT available: ${usdt.available}`);
@@ -236,16 +254,37 @@ async function runBot(pairs, io){
           if (signal === "BUY" || signal === "SELL") {
             // Execute trade
             await client.placeMarket(symbol, signal==="BUY"?"buy":"sell", quantity); // Use calculated quantity
-            tradeHistory.push({symbol,side:signal,price:lastPrice});
-            streak = signal==="BUY"? (streak>=0?streak+1:1) : (streak<=0?streak-1:-1);
-            pnl += lastPrice;
-            log(`TRADE EXECUTED: ${signal} ${symbol}@${lastPrice}`);
+            tradeHistory.push({
+              symbol,
+              side: signal,
+              price: lastPrice,
+              aiScore,
+              confidence,
+              mode,
+              timestamp: Date.now()
+            });
 
-            // Calculate and place dynamic SL/TP orders
+            // Update risk manager with trade execution (will be updated with result later)
+            log(`TRADE EXECUTED: ${signal} ${symbol}@${lastPrice} (Mode: ${mode}, AI Score: ${aiScore?.toFixed(3)}, Confidence: ${confidence?.toFixed(3)})`);
+
+            // Calculate and place dynamic SL/TP orders with mode-specific adjustments
             let stopLossTriggerPrice, takeProfitTriggerPrice;
 
             let dynamicSLMultiplier = SL_ATR_MULTIPLIER;
             let dynamicTPMultiplier = TP_ATR_MULTIPLIER;
+
+            // Mode-specific SL/TP adjustments
+            if (mode === TRADING_MODES.SCALPING) {
+              // Tighter stops for scalping
+              dynamicSLMultiplier *= 0.7; // 30% tighter stops
+              dynamicTPMultiplier *= 0.5; // 50% closer targets
+              log(`Scalping mode: Using tighter SL/TP ratios`);
+            } else {
+              // Wider stops for trend following
+              dynamicSLMultiplier *= 1.2; // 20% wider stops
+              dynamicTPMultiplier *= 1.5; // 50% wider targets
+              log(`Trend mode: Using wider SL/TP ratios`);
+            }
 
             // Dynamic adjustment based on volatility
             if (longTermATR > 0) { // Avoid division by zero
@@ -334,11 +373,15 @@ async function runBot(pairs, io){
 
           io.emit("update",{
             symbol,
-            price:lastPrice,
-            rsi:lastRSI,
+            price: lastPrice,
+            rsi: lastRSI,
             pnl,
-            trades:tradeHistory.slice(-20),
-            newsSentiment: sentimentScore // Emit news sentiment
+            trades: tradeHistory.slice(-20),
+            newsSentiment: sentimentScore,
+            aiScore: aiScore?.toFixed(3),
+            confidence: confidence?.toFixed(3),
+            tradingMode: mode,
+            riskMetrics: riskManager.getRiskMetrics()
           });
 
         }catch(err){
@@ -368,6 +411,32 @@ function stopBot(){
   setRunningState(false); // Set running state to false
 }
 
+// Track trade results for risk management
+function updateTradeResult(symbol, result) {
+  // Find the most recent trade for this symbol
+  const recentTrades = tradeHistory.filter(t => t.symbol === symbol).slice(-1);
+  if (recentTrades.length > 0) {
+    riskManager.updateStreaksAndCompounding(result);
+    log(`Updated risk manager with trade result: ${result} for ${symbol}`);
+  }
+}
+
+// Get current trading mode
+function getCurrentTradingMode() {
+  return getCurrentMode();
+}
+
+// Get risk metrics
+function getRiskMetrics() {
+  return riskManager.getRiskMetrics();
+}
+
+// Manual mode switching
+function setTradingMode(mode) {
+  const { setTradingMode: strategySetMode } = require("./strategy");
+  return strategySetMode(mode);
+}
+
 function ATRcalculate(closes){
   const diffs = closes.slice(1).map((p,i)=>Math.abs(p-closes[i]));
   return diffs.reduce((a,b)=>a+b,0)/diffs.length;
@@ -390,7 +459,7 @@ async function restartBot(pairs, io) {
   }
 }
 
-module.exports={runBot, stopBot, getRunningState, setRunningState, restartBot}; // Export new functions
+module.exports={runBot, stopBot, getRunningState, setRunningState, restartBot, updateTradeResult, getCurrentTradingMode, getRiskMetrics, setTradingMode}; // Export new functions
 
 // Start the bot when this script is executed directly
 if (require.main === module) {

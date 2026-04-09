@@ -3,7 +3,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-const { runBot, stopBot, getRunningState, setRunningState } = require("./botEngine"); // Import new functions
+const { runBot, stopBot, getRunningState, setRunningState, setTradingMode } = require("./botEngine"); // Import new functions
 
 const app = express();
 app.use(cors());
@@ -23,6 +23,14 @@ app.post('/start', (req, res) => {
   }
 });
 app.post("/stop",(req,res)=>{ stopBot(); res.send("Bot stopped"); });
+app.post("/set-mode", (req, res) => {
+  const { mode } = req.body;
+  if (setTradingMode(mode)) {
+    res.status(200).send(`Trading mode set to ${mode}`);
+  } else {
+    res.status(400).send("Invalid trading mode");
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT,() => {

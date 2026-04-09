@@ -1,26 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Bitget Adaptive Bot</title>
+<title>Bitget AI-Powered Trading Bot</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<h1>Bitget Adaptive Bot</h1>
-<button onclick="startBot()">Start</button>
-<button onclick="stopBot()">Stop</button>
+<h1>🔥 AI-Powered Trading Bot 🔥</h1>
+<button onclick="startBot()">Start Bot</button>
+<button onclick="stopBot()">Stop Bot</button>
 <button onclick="toggleTheme()">Toggle Theme</button>
+<button onclick="setScalpingMode()">Scalping Mode</button>
+<button onclick="setTrendMode()">Trend Mode</button>
 
-<div>Symbol: <span id="symbol"></span></div>
-<div>Price: <span id="price"></span></div>
-<div>RSI: <span id="rsi"></span></div>
-<div>PnL: <span id="pnl"></span></div>
-<div>Streak: <span id="streak"></span></div>
-<div id="newsStatus">Checking news...</div>
+<div class="metrics-grid">
+  <div class="metric">Symbol: <span id="symbol"></span></div>
+  <div class="metric">Price: <span id="price"></span></div>
+  <div class="metric">RSI: <span id="rsi"></span></div>
+  <div class="metric">AI Score: <span id="aiScore"></span></div>
+  <div class="metric">Confidence: <span id="confidence"></span></div>
+  <div class="metric">Trading Mode: <span id="tradingMode"></span></div>
+  <div class="metric">PnL: <span id="pnl"></span></div>
+  <div class="metric">News Sentiment: <span id="newsSentiment"></span></div>
+</div>
+
+<div class="risk-metrics">
+  <h3>Risk Management</h3>
+  <div>Win Streak: <span id="winStreak"></span></div>
+  <div>Loss Streak: <span id="lossStreak"></span></div>
+  <div>Win Rate: <span id="winRate"></span>%</div>
+  <div>Compounding: <span id="compoundingMultiplier"></span>x</div>
+  <div>Recovery Mode: <span id="recoveryMode"></span></div>
+  <div>Effective Risk: <span id="effectiveRisk"></span>%</div>
+</div>
 
 <canvas id="chart"></canvas>
 
-<h2>Trade History</h2>
-<table id="trades"></table>
+<h2>Recent Trades</h2>
+<table id="trades">
+  <thead>
+    <tr>
+      <th>Symbol</th>
+      <th>Side</th>
+      <th>Price</th>
+      <th>AI Score</th>
+      <th>Mode</th>
+      <th>Time</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/socket.io/socket.io.js"></script>
