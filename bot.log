@@ -7400,3 +7400,96 @@
 [2026-04-09T20:25:42.295Z] Last price: 84.376
 [2026-04-09T20:25:42.297Z] Calculated quantity: 0.00624715
 [2026-04-09T20:25:42.298Z] No trade executed for SOLUSDT due to signal: HOLD
+[2026-04-11T10:00:47.012Z] runBot function started.
+[2026-04-11T10:00:49.567Z] Fetched Bitget contract configurations.
+[2026-04-11T10:00:49.847Z] Skipping news sentiment fetch. Next fetch in approximately 10 minutes.
+[2026-04-11T10:00:50.875Z] Entering symbol loop.
+[2026-04-11T10:00:51.719Z] Fetched Bitget balances successfully.
+[2026-04-11T10:00:51.978Z] Initial balance set to: 35.53 USDT
+[2026-04-11T10:00:53.014Z] Current Balance: 35.53 USDT, Initial Balance: 35.53 USDT, Peak Balance: 35.53 USDT
+[2026-04-11T10:00:53.193Z] Daily Loss Percent: 0.00%, Total Drawdown Percent: 0.00%
+[2026-04-11T10:00:53.217Z] Processing symbol: BTCUSDT
+[2026-04-11T10:00:53.231Z] Fetching 1m candles for BTCUSDT
+[2026-04-11T10:00:53.245Z] Processing symbol: ETHUSDT
+[2026-04-11T10:00:53.247Z] Fetching 1m candles for ETHUSDT
+[2026-04-11T10:00:53.415Z] Processing symbol: XRPUSDT
+[2026-04-11T10:00:53.802Z] Fetching 1m candles for XRPUSDT
+[2026-04-11T10:00:54.162Z] Processing symbol: ADAUSDT
+[2026-04-11T10:00:54.700Z] Fetching 1m candles for ADAUSDT
+[2026-04-11T10:00:54.805Z] Processing symbol: SOLUSDT
+[2026-04-11T10:00:56.095Z] Fetching 1m candles for SOLUSDT
+[2026-04-11T10:00:58.106Z] Fetched 1m candles for BTCUSDT. Sample: [["1775895660000","72739.6","72770","72739.5","72762.1","19.9892","1454390.17908"],["1775895720000","72762.1","72762.1","72752.1","72752.1","18.3669","1336339.42129"]]
+[2026-04-11T10:00:58.168Z] Fetching 15m candles for BTCUSDT
+[2026-04-11T10:00:58.729Z] Fetched 1m candles for ETHUSDT. Sample: [["1775895660000","2233.05","2234.47","2233.05","2233.77","1906.5","4259043.7751"],["1775895720000","2233.77","2233.78","2233.09","2233.16","100.08","223516.9105"]]
+[2026-04-11T10:00:59.172Z] Fetching 15m candles for ETHUSDT
+[2026-04-11T10:00:59.377Z] Fetched 1m candles for XRPUSDT. Sample: [["1775895660000","1.3472","1.3477","1.3471","1.3476","19231","25911.6989"],["1775895720000","1.3476","1.3477","1.3476","1.3477","80337","108263.456"]]
+[2026-04-11T10:00:59.821Z] Fetching 15m candles for XRPUSDT
+[2026-04-11T10:01:00.026Z] Fetched 1m candles for ADAUSDT. Sample: [["1775895660000","0.2502","0.2503","0.2502","0.2503","7953","1990.6284"],["1775895720000","0.2503","0.2504","0.2503","0.2503","101959","25527.1297"]]
+[2026-04-11T10:01:00.595Z] Fetching 15m candles for ADAUSDT
+[2026-04-11T10:01:01.185Z] Fetched 1m candles for SOLUSDT. Sample: [["1775895660000","84.305","84.344","84.286","84.343","571","48140.7018"],["1775895720000","84.343","84.361","84.333","84.36","1131.3","95426.2157"]]
+[2026-04-11T10:01:01.678Z] Fetching 15m candles for SOLUSDT
+[2026-04-11T10:01:02.805Z] Fetching 4H candles for BTCUSDT
+[2026-04-11T10:01:02.873Z] Fetching 4H candles for ETHUSDT
+[2026-04-11T10:01:02.974Z] Fetching 4H candles for XRPUSDT
+[2026-04-11T10:01:02.998Z] Fetching 4H candles for ADAUSDT
+[2026-04-11T10:01:03.122Z] Fetching 4H candles for SOLUSDT
+[2026-04-11T10:01:03.478Z] Mapping candle data...
+[2026-04-11T10:01:03.536Z] Long-term ATR (4H): 391.63636363636306
+[2026-04-11T10:01:03.545Z] Calling analyze function...
+[2026-04-11T10:01:03.594Z] Analyze function returned: Signal=HOLD, RSI=68.54, EMA=72827.63801628443, ATR=18.318051161148418, Price=72875, AI Score=0.345, Confidence=0.580, Mode=trend
+[2026-04-11T10:01:03.662Z] Trend Direction: 15m=SIDEWAYS, 4h=UP
+[2026-04-11T10:01:03.735Z] Starting multi-timeframe confirmation...
+[2026-04-11T10:01:03.793Z] Adjusted position size with signals: 1.77666002
+[2026-04-11T10:01:03.810Z] USDT available: 35.53320043
+[2026-04-11T10:01:03.827Z] Calculated position size (USDT): 1.77666002
+[2026-04-11T10:01:04.668Z] Last price: 72875
+[2026-04-11T10:01:04.763Z] Calculated quantity: 0.00002438
+[2026-04-11T10:01:04.818Z] No trade executed for BTCUSDT due to signal: HOLD
+[2026-04-11T10:01:04.899Z] Mapping candle data...
+[2026-04-11T10:01:04.994Z] Long-term ATR (4H): 0.008426262626262638
+[2026-04-11T10:01:05.004Z] Calling analyze function...
+[2026-04-11T10:01:05.052Z] Analyze function returned: Signal=HOLD, RSI=60.55, EMA=1.3460219651005283, ATR=0.0006038592849276111, Price=1.3469, AI Score=0.245, Confidence=0.550, Mode=trend
+[2026-04-11T10:01:05.318Z] Trend Direction: 15m=SIDEWAYS, 4h=SIDEWAYS
+[2026-04-11T10:01:05.397Z] Starting multi-timeframe confirmation...
+[2026-04-11T10:01:05.424Z] Adjusted position size with signals: 1.77666002
+[2026-04-11T10:01:05.435Z] USDT available: 35.53320043
+[2026-04-11T10:01:05.465Z] Calculated position size (USDT): 1.77666002
+[2026-04-11T10:01:05.479Z] Last price: 1.3469
+[2026-04-11T10:01:05.491Z] Calculated quantity: 1.31907344
+[2026-04-11T10:01:05.505Z] No trade executed for XRPUSDT due to signal: HOLD
+[2026-04-11T10:01:05.551Z] Mapping candle data...
+[2026-04-11T10:01:05.563Z] Long-term ATR (4H): 0.0022404040404040404
+[2026-04-11T10:01:05.654Z] Calling analyze function...
+[2026-04-11T10:01:05.683Z] Analyze function returned: Signal=HOLD, RSI=60.17, EMA=0.24995381279952414, ATR=0.00017276838950137352, Price=0.2502, AI Score=0.105, Confidence=0.339, Mode=trend
+[2026-04-11T10:01:05.716Z] Trend Direction: 15m=SIDEWAYS, 4h=UP
+[2026-04-11T10:01:05.763Z] Starting multi-timeframe confirmation...
+[2026-04-11T10:01:05.783Z] Adjusted position size with signals: 1.77666002
+[2026-04-11T10:01:05.795Z] USDT available: 35.53320043
+[2026-04-11T10:01:05.807Z] Calculated position size (USDT): 1.77666002
+[2026-04-11T10:01:05.811Z] Last price: 0.2502
+[2026-04-11T10:01:05.814Z] Calculated quantity: 7.10095932
+[2026-04-11T10:01:05.817Z] No trade executed for ADAUSDT due to signal: HOLD
+[2026-04-11T10:01:05.831Z] Mapping candle data...
+[2026-04-11T10:01:05.841Z] Long-term ATR (4H): 15.742626262626262
+[2026-04-11T10:01:05.847Z] Calling analyze function...
+[2026-04-11T10:01:05.858Z] Analyze function returned: Signal=HOLD, RSI=57.71, EMA=2242.0439687281714, ATR=0.7963244562791876, Price=2242.93, AI Score=0.082, Confidence=0.332, Mode=trend
+[2026-04-11T10:01:05.921Z] Trend Direction: 15m=SIDEWAYS, 4h=UP
+[2026-04-11T10:01:05.932Z] Starting multi-timeframe confirmation...
+[2026-04-11T10:01:05.943Z] Adjusted position size with signals: 1.77666002
+[2026-04-11T10:01:05.964Z] USDT available: 35.53320043
+[2026-04-11T10:01:05.996Z] Calculated position size (USDT): 1.77666002
+[2026-04-11T10:01:06.007Z] Last price: 2242.93
+[2026-04-11T10:01:06.012Z] Calculated quantity: 0.00079212
+[2026-04-11T10:01:06.027Z] No trade executed for ETHUSDT due to signal: HOLD
+[2026-04-11T10:01:06.035Z] Mapping candle data...
+[2026-04-11T10:01:06.047Z] Long-term ATR (4H): 0.7051313131313132
+[2026-04-11T10:01:06.067Z] Calling analyze function...
+[2026-04-11T10:01:06.139Z] Analyze function returned: Signal=HOLD, RSI=48.05, EMA=84.47269349232293, ATR=0.05352987107925092, Price=84.46, AI Score=-0.125, Confidence=0.346, Mode=trend
+[2026-04-11T10:01:06.178Z] Trend Direction: 15m=SIDEWAYS, 4h=UP
+[2026-04-11T10:01:06.197Z] Starting multi-timeframe confirmation...
+[2026-04-11T10:01:06.220Z] Adjusted position size with signals: 1.77666002
+[2026-04-11T10:01:06.246Z] USDT available: 35.53320043
+[2026-04-11T10:01:06.297Z] Calculated position size (USDT): 1.77666002
+[2026-04-11T10:01:06.313Z] Last price: 84.46
+[2026-04-11T10:01:06.340Z] Calculated quantity: 0.02103552
+[2026-04-11T10:01:06.390Z] No trade executed for SOLUSDT due to signal: HOLD
